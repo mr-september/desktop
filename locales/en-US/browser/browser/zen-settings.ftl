@@ -271,6 +271,7 @@ zen-settings-window-drm = Play DRM-controlled content
 zen-settings-window-pip-toggle = Show picture-in-picture video controls
 zen-settings-window-pip-auto = Enable picture-in-picture when you leave a video tab
 zen-settings-window-sidebar-media-video = Show the playing video in the sidebar media player
+zen-settings-window-pip-occluded = Enable picture-in-picture when the window is minimized or covered
 zen-settings-window-window-header = Window
 zen-settings-window-haptic-feedback = Haptic feedback when reordering tabs
 zen-settings-window-drag-from-content = Drag the window from the top of the page
