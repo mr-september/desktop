@@ -32,6 +32,48 @@ tab-context-zen-replace-pinned-url-with-current =
 tab-context-zen-edit-pinned-url =
     .label = Edit…
     .accesskey = E
+# Submenu with how an essential opens when clicked, and related options.
+tab-context-zen-essential-behavior =
+    .label = Essential Behavior
+    .accesskey = B
+tab-context-zen-essential-open-as-tab =
+    .label = Open as Tab
+tab-context-zen-essential-open-as-popup =
+    .label = Open as Pop-up
+tab-context-zen-essential-open-as-split =
+    .label = Open in Split View
+# Keeps the pop-up or split view open while you use other tabs.
+tab-context-zen-essential-keep-open =
+    .label = Keep Open
+# Prevents moving or resizing the pop-up or split view, and changing how it opens.
+tab-context-zen-essential-lock =
+    .label = Lock Layout
+
+zen-essential-popup-close =
+    .label = Close
+    .tooltiptext = Close
+zen-essential-popup-expand =
+    .label = Open as Tab
+    .tooltiptext = Open as Tab
+zen-essential-popup-split =
+    .label = Open in Split View
+    .tooltiptext = Open in Split View
+# $on (String) - "true" when the option is on
+zen-essential-popup-keep-open =
+    .label = Keep Open
+    .tooltiptext =
+        { $on ->
+            [true] Keep Open: On
+           *[false] Keep Open: Off
+        }
+zen-essential-popup-lock =
+    .label = Lock Layout
+    .tooltiptext =
+        { $on ->
+            [true] Layout Locked
+           *[false] Lock Layout
+        }
+
 tab-context-zen-edit-title =
     .label = Change Label…
 tab-context-zen-edit-icon =

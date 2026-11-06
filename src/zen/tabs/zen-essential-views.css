@@ -1,0 +1,136 @@
+/*
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
+
+/* Shown by these attributes rather than as the selected panel, so the tab
+   panels keep one selected panel. */
+#tabbrowser-tabpanels > :is([zen-essential-popup], [zen-essential-popup-background]) {
+  -moz-subtree-hidden-only-visually: 0;
+  visibility: inherit;
+}
+
+/* An essential shown as a pop-up floats over the view it was opened from.
+   The frame and buttons reuse Glance's look, so themes that style Glance
+   style this too. */
+#tabbrowser-tabpanels > .browserSidebarContainer[zen-essential-popup] {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 3;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  flex: unset !important;
+  margin: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  pointer-events: none;
+
+  & .browserContainer {
+    position: relative;
+    flex: unset !important;
+    width: var(--zen-essential-popup-width, 80%);
+    height: var(--zen-essential-popup-height, 85%);
+    /* Offset from the centre, as a share of the view. */
+    left: calc(var(--zen-essential-popup-x, 0) * 100%);
+    top: calc(var(--zen-essential-popup-y, 0) * 100%);
+    pointer-events: auto;
+
+    & .browserStack {
+      overflow: hidden;
+      box-shadow: var(--zen-big-shadow);
+      /* stylelint-disable-next-line property-no-unknown */
+      corner-shape: round;
+      border-radius: calc(var(--zen-native-inner-radius) / var(--zen-squircle-value));
+      outline: 1px solid light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.14));
+
+      /* Matches the native acrylic sidebar setting. */
+      /* stylelint-disable-next-line media-query-no-invalid */
+      @media -moz-pref("zen.theme.acrylic-sidebar") and (not (prefers-reduced-transparency: reduce)) {
+        background: light-dark(rgba(255, 255, 255, 0.6), rgba(20, 20, 20, 0.6));
+        backdrop-filter: blur(40px);
+      }
+    }
+  }
+
+  & .zen-essential-popup-controls {
+    pointer-events: auto;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    & .browserContainer {
+      animation: zen-essential-popup-in 0.18s ease-out;
+    }
+  }
+}
+
+@keyframes zen-essential-popup-in {
+  from {
+    opacity: 0;
+    scale: 0.96;
+  }
+}
+
+/* Lives inside the pop-up's .browserContainer, which is relative. */
+.zen-essential-popup-resizer {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 2;
+
+  [zen-essential-popup][locked] & {
+    display: none;
+  }
+}
+
+/* A pill above the pop-up to drag it around. */
+.zen-essential-popup-grabber {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  translate: -50% 0;
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: light-dark(rgba(0, 0, 0, 0.3), rgba(255, 255, 255, 0.35));
+  cursor: grab;
+  z-index: 2;
+
+  &:hover {
+    background: light-dark(rgba(0, 0, 0, 0.5), rgba(255, 255, 255, 0.55));
+  }
+
+  &:active {
+    cursor: grabbing;
+  }
+
+  [zen-essential-popup][locked] & {
+    display: none;
+  }
+}
+
+/* The view behind recedes while the pop-up is selected. */
+.browserSidebarContainer[zen-essential-popup-background] {
+  @media (prefers-reduced-motion: no-preference) {
+    transition: scale 0.2s ease, opacity 0.2s ease;
+  }
+  scale: 0.98;
+  opacity: 0.6;
+}
+
+.zen-essential-keep-open {
+  list-style-image: url("chrome://browser/skin/zen-icons/pin.svg");
+}
+
+.zen-essential-lock {
+  list-style-image: url("chrome://browser/skin/zen-icons/security.svg");
+}
+
+.zen-essential-popup-controls toolbarbutton[type="checkbox"]:not([checked]) {
+  opacity: 0.55 !important;
+}

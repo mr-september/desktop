@@ -19,7 +19,15 @@ export class ZenGlanceParent extends JSWindowActorParent {
         // Explicitly allowlist fields from content; never forward
         // skipPermitUnload or other privileged flags.
         const { noAnimation, setNewID, hasFocused } = message.data ?? {};
-        this.browsingContext.topChromeWindow.gZenGlanceManager.closeGlance({
+        const win = this.browsingContext.topChromeWindow;
+        // Escape in an essential shown as a pop-up closes the pop-up.
+        const tab = win.gBrowser.getTabForBrowser(
+          this.browsingContext.top.embedderElement
+        );
+        if (win.gZenEssentialViews?.closeOnEscape(tab, !!hasFocused)) {
+          break;
+        }
+        win.gZenGlanceManager.closeGlance({
           onTabClose: true,
           noAnimation: !!noAnimation,
           setNewID: typeof setNewID === "string" ? setNewID : null,

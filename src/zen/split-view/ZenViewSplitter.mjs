@@ -1181,8 +1181,17 @@ class nsZenViewSplitter extends nsZenDOMOperatedFeature {
    */
   removeGroup(groupIndex) {
     const group = this._data[groupIndex];
-    for (const tab of group.tabs.reverse()) {
-      this.#detachFromSplitGroup(tab);
+    if (group.temporary) {
+      // Not synced, so other windows are not told about its tabs.
+      window.dispatchEvent(
+        new CustomEvent("ZenTemporarySplitRemoved", {
+          detail: { split: group },
+        })
+      );
+    } else {
+      for (const tab of group.tabs.reverse()) {
+        this.#detachFromSplitGroup(tab);
+      }
     }
     if (this.currentView === groupIndex) {
       this.deactivateCurrentSplitView();
@@ -1376,6 +1385,11 @@ class nsZenViewSplitter extends nsZenDOMOperatedFeature {
   onLocationChange(browser) {
     this.disableTabRearrangeView();
     let tab = window.gBrowser.getTabForBrowser(browser);
+    if (window.gZenEssentialViews?.isPopup(tab)) {
+      // A pop-up floats over whatever view is open; leave that view as is.
+      tab.linkedBrowser.docShellIsActive = true;
+      return;
+    }
     const ignoreSplit = tab.hasAttribute("zen-dont-split-glance");
     tab.removeAttribute("zen-dont-split-glance");
     let isGlanceTab = false;
@@ -1436,6 +1450,46 @@ class nsZenViewSplitter extends nsZenDOMOperatedFeature {
   getMemberGroup(split) {
     const group = split?.tabs.find(tab => !this.isSplitGuest(tab))?.group;
     return group?.hasAttribute("split-view-group") ? group : null;
+  }
+
+  /**
+   * Shows tabs side by side without saving or syncing the split: no tab
+   * group is created and the split is skipped by the session store. Used
+   * for an essential opened in split mode.
+   *
+   * @param {Tab[]} tabs - The tabs, left to right.
+   * @param {number} firstShare - The first tab's share of the width, 0 to 1.
+   * @param {object} [options]
+   * @param {boolean} [options.locked] - Whether the splitters can be dragged.
+   * @returns {object} The split.
+   */
+  showTemporarySplit(tabs, firstShare, { locked = false } = {}) {
+    const layoutTree = this.calculateLayoutTree(tabs, "vsep");
+    const [first, ...rest] = layoutTree.children;
+    first.sizeInParent = firstShare * 100;
+    for (const child of rest) {
+      child.sizeInParent = ((1 - firstShare) * 100) / rest.length;
+    }
+    const split = {
+      tabs,
+      gridType: "vsep",
+      layoutTree,
+      temporary: true,
+      locked,
+    };
+    this._data.push(split);
+    this.activateSplitView(split, true);
+    return split;
+  }
+
+  /**
+   * @param {object} split - A split from `_data`.
+   */
+  removeSplit(split) {
+    const index = this._data.indexOf(split);
+    if (index >= 0) {
+      this.removeGroup(index);
+    }
   }
 
   /**
@@ -1593,6 +1647,16 @@ class nsZenViewSplitter extends nsZenDOMOperatedFeature {
         }
         this.#useTabsToSplit(tabs);
         this.#moveTabsToContainer(tabs, tabs[tabIndexToUse]);
+        if (group.temporary) {
+          // Tabs added by hand make it a split of its own, saved and synced.
+          delete group.temporary;
+          delete group.locked;
+          window.dispatchEvent(
+            new CustomEvent("ZenTemporarySplitRemoved", {
+              detail: { split: group },
+            })
+          );
+        }
         const gridTypeChange = gridType && group.gridType !== gridType;
         const newTabsAdded = tabs.find(t => !group.tabs.includes(t));
         if (gridTypeChange && !newTabsAdded) {
@@ -1828,6 +1892,11 @@ class nsZenViewSplitter extends nsZenDOMOperatedFeature {
       .setAttribute("zen-split-view", "true");
 
     this.applyGridLayout(splitData.layoutTree);
+    for (const splitter of this.overlay.querySelectorAll(
+      ".zen-split-view-splitter"
+    )) {
+      splitter.toggleAttribute("locked", !!splitData.locked);
+    }
     this.setTabsDocShellState(splitData.tabs, true);
     this.toggleWrapperDisplay(true);
     window.dispatchEvent(new CustomEvent("ZenViewSplitter:SplitViewActivated"));
@@ -2614,15 +2683,18 @@ class nsZenViewSplitter extends nsZenDOMOperatedFeature {
       };
     };
 
-    return this._data.map(group => {
-      const serializedTree = serializeNode(group.layoutTree);
-      return {
-        groupId: group.groupId,
-        gridType: group.gridType,
-        layoutTree: serializedTree,
-        tabs: group.tabs.map(tab => tab.id),
-      };
-    });
+    // Temporary splits (an essential opened in split mode) are never saved.
+    return this._data
+      .filter(group => !group.temporary)
+      .map(group => {
+        const serializedTree = serializeNode(group.layoutTree);
+        return {
+          groupId: group.groupId,
+          gridType: group.gridType,
+          layoutTree: serializedTree,
+          tabs: group.tabs.map(tab => tab.id),
+        };
+      });
   }
 
   restoreDataFromSessionStore(data) {

@@ -131,6 +131,11 @@
   pointer-events: all;
 }
 
+/* An essential's locked split layout can't be resized. */
+.zen-split-view-splitter[locked] {
+  pointer-events: none;
+}
+
 .zen-split-view-splitter[orient="horizontal"] {
   height: var(--zen-split-column-gap);
   cursor: ns-resize;

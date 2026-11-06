@@ -753,6 +753,7 @@ class nsZenPinnedTabManager extends nsZenDOMOperatedFeature {
       isEssential ||
       !Services.prefs.getBoolPref("zen.tabs.rename-tabs") ||
       !gZenVerticalTabsManager._prefsSidebarExpanded;
+    window.gZenEssentialViews?.updateContextMenu(contextTab);
   }
 
   // eslint-disable-next-line complexity

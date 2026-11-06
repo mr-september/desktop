@@ -54,6 +54,7 @@ const EVENTS = [
 
   "ZenTabIconChanged",
   "ZenTabLabelChanged",
+  "ZenEssentialViewChanged",
 
   "TabMove",
   "TabPinned",
@@ -81,6 +82,10 @@ const EVENTS = [
 const SYNC_FLAG_LABEL = 1 << 0;
 const SYNC_FLAG_ICON = 1 << 1;
 const SYNC_FLAG_MOVE = 1 << 2;
+const SYNC_FLAG_ESSENTIAL_VIEW = 1 << 3;
+
+// Per-essential view settings (see ZenEssentialViews.mjs).
+const ESSENTIAL_VIEW_KEY = "zen-essential-view";
 
 class nsZenWindowSync {
   #initialized = false;
@@ -553,6 +558,22 @@ class nsZenWindowSync {
       } else if (gBrowser.isTabGroup(aOriginalItem)) {
         aTargetItem.label = aOriginalItem.label;
       }
+    }
+    if (flags & SYNC_FLAG_ESSENTIAL_VIEW && gBrowser.isTab(aOriginalItem)) {
+      const value = lazy.SessionStore.getCustomTabValue(
+        aOriginalItem,
+        ESSENTIAL_VIEW_KEY
+      );
+      if (value) {
+        lazy.SessionStore.setCustomTabValue(
+          aTargetItem,
+          ESSENTIAL_VIEW_KEY,
+          value
+        );
+      } else {
+        lazy.SessionStore.deleteCustomTabValue(aTargetItem, ESSENTIAL_VIEW_KEY);
+      }
+      aWindow.gZenEssentialViews?.refresh(aTargetItem);
     }
     if (flags & SYNC_FLAG_MOVE && !aTargetItem.hasAttribute("zen-empty-tab")) {
       this.#maybeSyncAttributeChange(
@@ -1466,7 +1487,10 @@ class nsZenWindowSync {
         tab,
         newTab,
         win,
-        SYNC_FLAG_ICON | SYNC_FLAG_LABEL | SYNC_FLAG_MOVE
+        SYNC_FLAG_ICON |
+          SYNC_FLAG_LABEL |
+          SYNC_FLAG_MOVE |
+          SYNC_FLAG_ESSENTIAL_VIEW
       );
     });
     if (ignoreExistingId && tab?.splitView) {
@@ -1489,6 +1513,10 @@ class nsZenWindowSync {
     }
     this.#maybeEditAllTabsEntryImage(aEvent.target);
     return this.#delegateGenericSyncEvent(aEvent, SYNC_FLAG_ICON);
+  }
+
+  on_ZenEssentialViewChanged(aEvent) {
+    return this.#delegateGenericSyncEvent(aEvent, SYNC_FLAG_ESSENTIAL_VIEW);
   }
 
   on_ZenTabLabelChanged(aEvent) {

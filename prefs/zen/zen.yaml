@@ -14,6 +14,10 @@
 - name: zen.tabs.essentials.max
   value: 12
 
+# Clicking the essential that is open goes back to the tab it was opened from.
+- name: zen.tabs.essentials.toggle-on-click
+  value: true
+
 - name: zen.tabs.show-newtab-vertical
   value: true
 
