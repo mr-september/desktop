@@ -54,3 +54,51 @@ add_task(async function test_media_bar_shows_when_switching_off_playing_tab() {
     gBrowser.selectedTab = originalTab;
   }
 });
+
+// Switching to the tab that is already selected never resolves.
+async function select(tab) {
+  if (gBrowser.selectedTab !== tab) {
+    await BrowserTestUtils.switchTab(gBrowser, tab);
+  }
+}
+
+add_task(async function test_essential_views_keep_the_media_tab_out_of_the_bar() {
+  gZenMediaController.closeAllCards();
+  const originalTab = gBrowser.selectedTab;
+  const mediaTab = await addMediaTab();
+  const essential = BrowserTestUtils.addTab(gBrowser, "data:text/plain,essential");
+  await BrowserTestUtils.browserLoaded(essential.linkedBrowser);
+  gZenPinnedTabManager.addToEssentials(essential);
+
+  try {
+    await select(mediaTab);
+    await playVideoIn(mediaTab);
+
+    for (const mode of ["popup", "split"]) {
+      gZenEssentialViews.setSettings(essential, { mode });
+      await select(mediaTab);
+      await select(essential);
+      await new Promise(r => setTimeout(r, 1000));
+      ok(
+        !isMediaBarVisible(),
+        `the media tab is still on screen under the essential as a ${mode}`
+      );
+      gZenEssentialViews.close(essential, { selectAnchor: true });
+      await new Promise(r => setTimeout(r, 1000));
+    }
+
+    gZenEssentialViews.setSettings(essential, { mode: "tab" });
+    await select(mediaTab);
+    await select(essential);
+    await TestUtils.waitForCondition(
+      isMediaBarVisible,
+      "an essential opened as a tab leaves the media tab behind"
+    );
+  } finally {
+    await pauseVideoIn(mediaTab);
+    gZenEssentialViews.close(essential);
+    BrowserTestUtils.removeTab(essential);
+    BrowserTestUtils.removeTab(mediaTab);
+    gBrowser.selectedTab = originalTab;
+  }
+});

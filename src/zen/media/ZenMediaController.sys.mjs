@@ -166,9 +166,14 @@ class ZenMediaCard {
     ) {
       return false;
     }
-    return (
-      this.window.gBrowser.selectedBrowser.browserId !== this.browser.browserId
-    );
+    const { gBrowser, gZenEssentialViews } = this.window;
+    if (gBrowser.selectedBrowser.browserId === this.browser.browserId) {
+      return false;
+    }
+    // An essential's pop-up or split shows the tab it was opened from, so
+    // that tab is still on screen.
+    const tab = gBrowser.getTabForBrowser(this.browser);
+    return !gZenEssentialViews?.isShownWithSelected(tab);
   }
 
   get isVideoDocked() {

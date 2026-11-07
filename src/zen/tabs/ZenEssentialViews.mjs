@@ -288,6 +288,26 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
     return this.#splits.get(tab)?.split ?? null;
   }
 
+  /**
+   * Whether a tab is on screen as part of the essential that is selected: the
+   * view under its pop-up, or its partner in a temporary split. Such a tab
+   * has not been left, so it is not in the background.
+   *
+   * @param {Tab} tab
+   * @returns {boolean}
+   */
+  isShownWithSelected(tab) {
+    const selected = gBrowser.selectedTab;
+    if (!tab || tab === selected) {
+      return false;
+    }
+    if (this.#popup?.tab === selected && this.#popup.anchor === tab) {
+      return true;
+    }
+    const split = this.#splits.get(selected)?.split;
+    return !!split?.tabs.includes(tab);
+  }
+
   #onTabSelect(tab, previousTab) {
     if (this.#selecting) {
       return;
