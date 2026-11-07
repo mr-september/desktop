@@ -66,6 +66,12 @@ add_task(async function test_minimizing_moves_docked_video_to_pip() {
   const { win, card } = await openWindowWithDockedVideo();
 
   try {
+    // Windows can open the test window behind the foreground app, which
+    // counts as covered; minimizing it then hides nothing new.
+    await TestUtils.waitForCondition(
+      () => !win.isFullyOccluded,
+      "the window starts out visible"
+    );
     const playerOpened = waitForPlayerWindow();
     const minimized = BrowserTestUtils.waitForEvent(win, "sizemodechange");
     win.minimize();
