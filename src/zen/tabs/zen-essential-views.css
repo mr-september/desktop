@@ -112,6 +112,12 @@
   [zen-essential-popup][locked] & {
     display: none;
   }
+
+  /* At the top of the view, inside the pop-up's top edge. */
+  [zen-essential-popup][grabber-inside] & {
+    top: 6px;
+    box-shadow: 0 0 0 1px light-dark(rgba(255, 255, 255, 0.6), rgba(0, 0, 0, 0.4));
+  }
 }
 
 /* The view behind recedes while the pop-up is selected. */

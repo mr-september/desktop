@@ -20,6 +20,40 @@ const DEFAULT_VIEW = Object.freeze({
 const MIN_POPUP_SIZE = 0.3;
 const MIN_SPLIT_SHARE = 0.2;
 const TOGGLE_PREF = "zen.tabs.essentials.toggle-on-click";
+// Room the move handle needs above the pop-up, in pixels.
+const GRABBER_MARGIN = 16;
+
+/**
+ * One axis of a resize from the pop-up's corner. The pop-up grows and
+ * shrinks around its centre, but a side that reaches the edge of the view
+ * stays there while the other side keeps going.
+ *
+ * @param {number} viewStart - Where the view starts on this axis, in pixels.
+ * @param {number} viewSize - The view's size on this axis, in pixels.
+ * @param {number} center - The pop-up's centre when the drag started.
+ * @param {number} pointer - Where the corner is dragged to.
+ * @returns {{size: number, offset: number}} The pop-up's size, and its
+ *   centre's offset from the view's, as shares of the view.
+ */
+function resizeAxis(viewStart, viewSize, center, pointer) {
+  const viewEnd = viewStart + viewSize;
+  const minSize = MIN_POPUP_SIZE * viewSize;
+  const half = Math.max(pointer - center, minSize / 2);
+  let start = Math.max(viewStart, center - half);
+  let end = Math.min(viewEnd, center + half);
+  if (end - start < minSize) {
+    // Held at an edge while shrinking: keep the smallest size.
+    if (start === viewStart) {
+      end = Math.min(viewEnd, start + minSize);
+    } else {
+      start = Math.max(viewStart, end - minSize);
+    }
+  }
+  return {
+    size: (end - start) / viewSize,
+    offset: ((start + end) / 2 - (viewStart + viewSize / 2)) / viewSize,
+  };
+}
 
 /**
  * Lets an essential open as a pop-up floating over the current view, or in
@@ -519,6 +553,30 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
       });
     }
     this.#updatePopupButtons();
+    this.#placeGrabber(container);
+  }
+
+  /**
+   * Keeps the move handle where it can be grabbed: above the pop-up when
+   * there is room, inside its top edge when the pop-up is at the top of the
+   * view, where the toolbars would cover a handle above it.
+   *
+   * @param {Element} container - The pop-up's panel.
+   */
+  #placeGrabber(container) {
+    const grabber = container.querySelector(".zen-essential-popup-grabber");
+    if (!grabber) {
+      return;
+    }
+    container.removeAttribute("grabber-inside");
+    const view = container.getBoundingClientRect();
+    const handle = grabber.getBoundingClientRect();
+    const x = handle.left + handle.width / 2;
+    const y = handle.top + handle.height / 2;
+    const covered =
+      handle.top < view.top + GRABBER_MARGIN ||
+      !grabber.contains(document.elementFromPoint(x, y));
+    container.toggleAttribute("grabber-inside", covered);
   }
 
   #onBackgroundClick = () => {
@@ -712,6 +770,7 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
         );
         container.style.setProperty("--zen-essential-popup-x", x);
         container.style.setProperty("--zen-essential-popup-y", y);
+        this.#placeGrabber(container);
       },
       () => this.setSettings(tab, { popupX: x, popupY: y })
     );
@@ -726,36 +785,37 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
     const area = container.getBoundingClientRect();
     const centerX = area.left + area.width * (0.5 + settings.popupX);
     const centerY = area.top + area.height * (0.5 + settings.popupY);
-    // It grows around its centre, as far as the edges of the view allow.
-    const maxWidth = 1 - 2 * Math.abs(settings.popupX);
-    const maxHeight = 1 - 2 * Math.abs(settings.popupY);
-    const clamp = (value, max) =>
-      Math.min(max, Math.max(MIN_POPUP_SIZE, value));
-    let width = 0;
-    let height = 0;
+    let horizontal = null;
+    let vertical = null;
 
     const onMove = moveEvent => {
-      // The pop-up keeps its centre, so the corner moves half the size change.
-      width = clamp(
-        (2 * Math.abs(moveEvent.clientX - centerX)) / area.width,
-        maxWidth
+      horizontal = resizeAxis(
+        area.left,
+        area.width,
+        centerX,
+        moveEvent.clientX
       );
-      height = clamp(
-        (2 * Math.abs(moveEvent.clientY - centerY)) / area.height,
-        maxHeight
-      );
+      vertical = resizeAxis(area.top, area.height, centerY, moveEvent.clientY);
       container.style.setProperty(
         "--zen-essential-popup-width",
-        `${width * 100}%`
+        `${horizontal.size * 100}%`
       );
       container.style.setProperty(
         "--zen-essential-popup-height",
-        `${height * 100}%`
+        `${vertical.size * 100}%`
       );
+      container.style.setProperty("--zen-essential-popup-x", horizontal.offset);
+      container.style.setProperty("--zen-essential-popup-y", vertical.offset);
+      this.#placeGrabber(container);
     };
     this.#trackDrag(event, onMove, () => {
-      if (width && height) {
-        this.setSettings(tab, { popupWidth: width, popupHeight: height });
+      if (horizontal && vertical) {
+        this.setSettings(tab, {
+          popupWidth: horizontal.size,
+          popupHeight: vertical.size,
+          popupX: horizontal.offset,
+          popupY: vertical.offset,
+        });
       }
     });
   }

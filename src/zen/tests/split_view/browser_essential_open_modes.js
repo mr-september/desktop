@@ -424,3 +424,76 @@ add_task(async function test_escape_in_the_page_closes_the_popup() {
 
   await cleanUp([anchor, essential]);
 });
+
+add_task(async function test_move_handle_stays_reachable_at_the_top() {
+  // Pop-up pushed against the top of the view.
+  const essential = await addEssential(1, {
+    mode: "popup",
+    popupHeight: 0.6,
+    popupY: -0.2,
+  });
+  const anchor = await addTabTo(gBrowser, getUrlForNthTab(2));
+  await select(anchor);
+  await select(essential);
+
+  const container = containerOf(essential);
+  ok(
+    container.hasAttribute("grabber-inside"),
+    "The handle moves inside the pop-up"
+  );
+  const grabber = container.querySelector(".zen-essential-popup-grabber");
+  const rect = grabber.getBoundingClientRect();
+  ok(
+    grabber.contains(
+      document.elementFromPoint(
+        rect.left + rect.width / 2,
+        rect.top + rect.height / 2
+      )
+    ),
+    "Nothing covers the handle"
+  );
+
+  gZenEssentialViews.setSettings(essential, { popupY: 0 });
+  ok(
+    !container.hasAttribute("grabber-inside"),
+    "With room above, it goes back above the pop-up"
+  );
+
+  await cleanUp([anchor, essential]);
+});
+
+add_task(async function test_resize_keeps_growing_past_a_held_edge() {
+  // Pop-up whose left edge is at the left of the view.
+  const essential = await addEssential(1, {
+    mode: "popup",
+    popupWidth: 0.4,
+    popupHeight: 0.5,
+    popupX: -0.3,
+  });
+  const anchor = await addTabTo(gBrowser, getUrlForNthTab(2));
+  await select(anchor);
+  await select(essential);
+
+  const container = containerOf(essential);
+  const view = container.getBoundingClientRect();
+  const resizer = container.querySelector(".zen-essential-popup-resizer");
+  const dx = view.width * 0.2;
+  const box = resizer.getBoundingClientRect();
+  EventUtils.synthesizeMouseAtCenter(resizer, { type: "mousedown" });
+  EventUtils.synthesizeMouse(resizer, box.width / 2 + dx, box.height / 2, {
+    type: "mousemove",
+  });
+  EventUtils.synthesizeMouse(resizer, box.width / 2 + dx, box.height / 2, {
+    type: "mouseup",
+  });
+
+  const settings = gZenEssentialViews.getSettings(essential);
+  Assert.greater(settings.popupWidth, 0.5, "It grew to the right");
+  Assert.less(
+    Math.abs(settings.popupX - (settings.popupWidth / 2 - 0.5)),
+    0.01,
+    "Its left edge stayed at the left of the view"
+  );
+
+  await cleanUp([anchor, essential]);
+});
