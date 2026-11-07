@@ -3,45 +3,23 @@
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/.
    -->
-<!-- TODO: Get a job -->
-<img src="./docs/assets/zen-dark.svg" width="100px" align="left">
 
-### `Zen Browser`
+# Zen Browser (unofficial fork)
 
-[![Downloads](https://img.shields.io/github/downloads/zen-browser/desktop/total.svg)](https://github.com/zen-browser/desktop/releases)
-[![Crowdin](https://badges.crowdin.net/zen-browser/localized.svg)](https://crowdin.com/project/zen-browser)
-[![Zen Release builds](https://github.com/zen-browser/desktop/actions/workflows/build.yml/badge.svg?branch=stable)](https://github.com/zen-browser/desktop/actions/workflows/build.yml)
+[Zen Browser](https://github.com/zen-browser/desktop) with a few extra features. This is a personal fork, not affiliated with or supported by the Zen project; please report issues with these changes here, not upstream.
 
-Zen is a firefox-based browser with the aim of pushing your productivity to a new level!
+## Additions
 
-<div flex="true">
-  <a href="https://zen-browser.app/download">
-    Download
-  </a>
-  •
-  <a href="https://zen-browser.app">
-    Website
-  </a>
-  •
-  <a href="https://docs.zen-browser.app">
-    Documentation
-  </a>
-  •
-  <a href="https://zen-browser.app/release-notes/latest">
-    Release Notes
-  </a>
-</div>
+- **Sidebar media video:** the playing video is shown in the sidebar media card, and moves to Picture-in-Picture when the window is hidden.
+- **Essentials as a pop-up:** an essential can open as a pop-up over the current tab, as a live tab rather than a duplicate.
+- **Essentials in a split view:** an essential can be split with other tabs without being duplicated.
 
-### Contributing
+The branch `custom/daily` carries all of these on top of upstream `dev`. Each feature also lives on its own `feat/*` branch.
 
-If you'd like to report a bug, please do so on our [GitHub Issues page](https://github.com/zen-browser/desktop/issues/) and for feature requests, you can use [GitHub Discussions](https://github.com/zen-browser/desktop/discussions).
+## Building
 
-Zen is an open-source project, and we welcome contributions from the community! Please take a look at the [contribution guidelines](./docs/contribute.md) before getting started!
+No binaries are published. Build from this fork by following Zen's [building guide](https://docs.zen-browser.app/guides/building) with this repository and the `custom/daily` branch checked out, rather than upstream.
 
-#### Partners
+## License
 
-Thanks to all the [sponsors](https://zen-browser.app/#sponsors) of Zen for their support and contributions, including:
-
-<a href="https://blacksmith.sh">
-  <img src="./docs/assets/blacksmith-yellow.png" width="350px"/>
-</a>
+[MPL 2.0](./LICENSE), as upstream.
