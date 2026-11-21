@@ -8,6 +8,9 @@ const URL2 = "data:text/plain,tab2";
 const URL3 = "data:text/plain,tab3";
 
 add_task(async function test_blurToRecentlyClosedTab() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["zen.tabs.select-by-opener-on-close", false]],
+  });
   const [tab1, tab2, tab3] = [
     BrowserTestUtils.addTab(gBrowser, URL1),
     BrowserTestUtils.addTab(gBrowser, URL2),
@@ -37,12 +40,14 @@ add_task(async function test_blurToRecentlyClosedTab() {
   );
 
   gBrowser.removeTab(tab1);
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_closeToLastTab() {
   await SpecialPowers.pushPrefEnv({
     set: [
       ["zen.tabs.select-recently-used-on-close", false],
+      ["zen.tabs.select-by-opener-on-close", false],
       ["zen.view.show-newtab-button-top", false],
     ],
   });

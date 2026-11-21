@@ -27,6 +27,12 @@
 - name: zen.tabs.select-recently-used-on-close
   value: true
 
+# Closing a tab goes to the tabs it opened, oldest first, then to the tabs
+# opened after it by the same tab, then to that tab. Takes precedence over
+# select-recently-used-on-close and browser.tabs.selectOwnerOnClose.
+- name: zen.tabs.select-by-opener-on-close
+  value: true
+
 - name: zen.tabs.folder-dragover-threshold-percent
   value: 20 # Percentage of folder height to trigger dragover
 
