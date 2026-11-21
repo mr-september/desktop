@@ -75,8 +75,8 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
   #selecting = false;
   /** The tab each essential was opened from, to return to on a click. */
   #returnTo = new WeakMap();
-  /** The essential that was already selected when the mouse went down. */
-  #pressedSelectedEssential = null;
+  /** The essential that was already open when the mouse went down. */
+  #pressedOpenEssential = null;
 
   init() {
     // Capturing, so the view is set up before split view reacts to the
@@ -118,14 +118,14 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
         }
         break;
       case "mousedown":
-        this.#pressedSelectedEssential = this.#clickedEssential(event, true);
+        this.#pressedOpenEssential = this.#clickedEssential(event, true);
         break;
       case "click": {
-        const tab = this.#clickedEssential(event, false);
-        if (tab && tab === this.#pressedSelectedEssential) {
+        const tab = this.#clickedEssential(event);
+        if (tab && tab === this.#pressedOpenEssential) {
           this.#toggleBack(tab);
         }
-        this.#pressedSelectedEssential = null;
+        this.#pressedOpenEssential = null;
         break;
       }
     }
@@ -135,11 +135,11 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
 
   /**
    * @param {MouseEvent} event
-   * @param {boolean} mustBeSelected - Only count an essential that is
-   *   already selected.
+   * @param {boolean} [mustBeOpen] - Only count an essential that is already
+   *   selected, or shown as a pop-up or split while another tab is selected.
    * @returns {Tab|null} The essential a plain left click landed on.
    */
-  #clickedEssential(event, mustBeSelected) {
+  #clickedEssential(event, mustBeOpen = false) {
     if (
       event.button !== 0 ||
       // The second click of a double-click would undo the first.
@@ -159,12 +159,29 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
     if (!tab?.hasAttribute("zen-essential")) {
       return null;
     }
-    return !mustBeSelected || tab.selected ? tab : null;
+    return !mustBeOpen || tab.selected || this.#isOnScreen(tab) ? tab : null;
+  }
+
+  /**
+   * @param {Tab} tab
+   * @returns {boolean} Whether the essential's pop-up, or the split it is
+   *   in, is on screen, whichever tab is selected.
+   */
+  #isOnScreen(tab) {
+    if (this.#popup?.tab === tab) {
+      return true;
+    }
+    const split = this.#splits.get(tab)?.split;
+    return (
+      !!split && gZenViewSplitter.getSplitForTab(gBrowser.selectedTab) === split
+    );
   }
 
   /**
    * Clicking the essential that is open goes back to where it was opened
-   * from, in every mode.
+   * from, in every mode. A pop-up or split is closed, also when the other
+   * side of it was selected: the press selects the essential first, then
+   * the click closes it.
    *
    * @param {Tab} tab - The selected essential.
    */
@@ -312,6 +329,9 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
     if (this.#selecting) {
       return;
     }
+    // Going from one essential's pop-up or split to another essential: the
+    // new one opens over the same tab, as if selected from there.
+    previousTab = this.#tabUnder(previousTab);
     this.#leaveViews(tab);
     if (
       tab.hasAttribute("zen-essential") &&
@@ -354,11 +374,16 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
   #leaveViews(selected) {
     // A glance opened from inside a view belongs to that view.
     const target = gZenGlanceManager.getTabOrGlanceParent(selected);
+    // Only one essential is shown over a tab at a time: another one opening
+    // as a pop-up or split replaces it, even if it is kept open.
+    const replacing =
+      target?.hasAttribute("zen-essential") &&
+      this.getSettings(target).mode !== "tab";
     const popup = this.#popup;
     if (popup && popup.tab !== target) {
       const settings = this.getSettings(popup.tab);
       const visibleHere = this.#isVisibleInCurrentSpace(popup.tab);
-      if (settings.keepOpen && visibleHere) {
+      if (settings.keepOpen && visibleHere && !replacing) {
         if (this.#isValidAnchor(target, popup.tab)) {
           popup.anchor = target;
         }
@@ -372,10 +397,22 @@ class nsZenEssentialViews extends nsZenDOMOperatedFeature {
         continue;
       }
       this.#rememberSplitShare(tab, split);
-      if (!this.getSettings(tab).keepOpen) {
+      if (!this.getSettings(tab).keepOpen || replacing) {
         this.close(tab);
       }
     }
+  }
+
+  /**
+   * @param {Tab} tab
+   * @returns {Tab} The tab an essential's pop-up or split is shown over, if
+   *   the given tab is such an essential; otherwise the tab itself.
+   */
+  #tabUnder(tab) {
+    if (tab && this.#popup?.tab === tab) {
+      return this.#popup.anchor;
+    }
+    return this.#splits.get(tab)?.anchor ?? tab;
   }
 
   #reopen(tab, previousTab, settings) {

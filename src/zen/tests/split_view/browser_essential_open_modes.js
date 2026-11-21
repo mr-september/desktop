@@ -230,7 +230,11 @@ add_task(async function test_behavior_menu_shows_for_essentials_only() {
 
   async function openMenuOn(tab) {
     const shown = BrowserTestUtils.waitForPopupEvent(menu, "shown");
-    EventUtils.synthesizeMouseAtCenter(tab, { type: "contextmenu", button: 2 });
+    // Opened on the tab directly: a tab can sit under the sidebar's other
+    // content in the test window, where a synthesized click misses it.
+    const event = new Event("");
+    tab.dispatchEvent(event);
+    menu.openPopup(tab, "end_after", 0, 0, true, false, event);
     await shown;
     return document.getElementById("context_zen-essential-behavior");
   }
@@ -285,6 +289,73 @@ add_task(async function test_clicking_the_open_essential_goes_back() {
   );
 
   await cleanUp([anchor, popupEssential, tabEssential]);
+});
+
+add_task(async function test_another_popup_replaces_the_open_one() {
+  // Kept open, so only replacement can close it.
+  const first = await addEssential(1, { mode: "popup", keepOpen: true });
+  const second = await addEssential(2, { mode: "popup" });
+  const anchor = await addTabTo(gBrowser, getUrlForNthTab(3));
+  await select(anchor);
+  await select(first);
+
+  await select(second);
+  ok(gZenEssentialViews.isPopup(second), "The second essential is a pop-up");
+  ok(!gZenEssentialViews.isPopup(first), "The first one closed");
+  ok(
+    !containerOf(first).hasAttribute("zen-essential-popup"),
+    "Its panel no longer floats"
+  );
+  ok(
+    containerOf(anchor).hasAttribute("zen-essential-popup-background"),
+    "It floats over the same tab, not over the first pop-up"
+  );
+
+  await select(first);
+  ok(gZenEssentialViews.isPopup(first), "Switching back toggles again");
+  ok(!gZenEssentialViews.isPopup(second), "The second one closed");
+  ok(
+    containerOf(anchor).hasAttribute("zen-essential-popup-background"),
+    "Still over the same tab"
+  );
+
+  await cleanUp([anchor, first, second]);
+});
+
+add_task(async function test_clicking_a_shown_split_essential_closes_it() {
+  const essential = await addEssential(1, { mode: "split" });
+  const anchor = await addTabTo(gBrowser, getUrlForNthTab(2));
+  await select(anchor);
+  await select(essential);
+  // Working in the other side of the split.
+  await select(anchor);
+  ok(gZenEssentialViews.getTemporarySplit(essential), "The split stays");
+
+  EventUtils.synthesizeMouseAtCenter(essential, {});
+  await TestUtils.waitForCondition(
+    () => !gZenEssentialViews.getTemporarySplit(essential) && anchor.selected,
+    "The split closed and the tab is selected"
+  );
+
+  await cleanUp([anchor, essential]);
+});
+
+add_task(async function test_clicking_a_kept_open_popup_closes_it() {
+  const essential = await addEssential(1, { mode: "popup", keepOpen: true });
+  const anchor = await addTabTo(gBrowser, getUrlForNthTab(2));
+  const other = await addTabTo(gBrowser, getUrlForNthTab(3));
+  await select(anchor);
+  await select(essential);
+  await select(other);
+  ok(gZenEssentialViews.isPopup(essential), "Kept open over another tab");
+
+  EventUtils.synthesizeMouseAtCenter(essential, {});
+  await TestUtils.waitForCondition(
+    () => !gZenEssentialViews.isPopup(essential) && other.selected,
+    "The pop-up closed and the tab under it is selected"
+  );
+
+  await cleanUp([anchor, other, essential]);
 });
 
 add_task(async function test_remembered_popup_position_is_applied() {
