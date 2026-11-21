@@ -125,3 +125,36 @@ add_task(async function test_Duplicate_Tab_Inside_Folder_Pref_Disabled() {
   await removeFolder(folder);
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function test_Owned_Tabs_Go_Under_Their_Opener() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["zen.folders.owned-tabs-in-folder", true]],
+  });
+  const selectedTab = gBrowser.selectedTab;
+  const opener = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  const last = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  const folder = await gZenFolders.createFolder([opener, last], {
+    renameFolder: false,
+  });
+  gBrowser.selectedTab = opener;
+  const triggeringPrincipal =
+    Services.scriptSecurityManager.getSystemPrincipal();
+  const openTab = () =>
+    gBrowser.addTab("https://example.com", {
+      relatedToCurrent: true,
+      inBackground: true,
+      triggeringPrincipal,
+    });
+  const first = openTab();
+  const second = openTab();
+
+  Assert.deepEqual(
+    folder.tabs.filter(tab => !tab.hasAttribute("zen-empty-tab")),
+    [opener, first, second, last],
+    "Opened tabs are right under their opener, in the order they opened"
+  );
+
+  gBrowser.selectedTab = selectedTab;
+  await removeFolder(folder);
+  await SpecialPowers.popPrefEnv();
+});

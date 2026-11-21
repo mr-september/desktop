@@ -25,6 +25,7 @@
     "resource:///modules/zen/ZenTabRenamer.mjs",
     "chrome://browser/content/zen-components/ZenViewSplitter.mjs",
     "chrome://browser/content/zen-components/ZenEssentialViews.mjs",
+    "chrome://browser/content/zen-components/ZenTabLineage.mjs",
     "chrome://browser/content/zen-components/ZenFolders.mjs",
     "chrome://browser/content/zen-components/ZenEmojiPicker.mjs",
     "chrome://browser/content/zen-components/ZenDownloadAnimation.mjs",

@@ -437,7 +437,28 @@ class nsZenFolders extends nsZenDOMOperatedFeature {
     if (Services.prefs.getBoolPref("zen.folders.owned-tabs-in-folder")) {
       gBrowser.pinTab(tab);
       group.addTabs([tab]);
+      this.#placeUnderOpener(tab, group);
     }
+  }
+
+  /**
+   * Moves a tab opened from a tab in a folder right under it, after the
+   * tabs it opened before, instead of at the end of the folder.
+   *
+   * @param {Tab} tab - The new tab, already in the folder.
+   * @param {ZenFolder} group - The folder.
+   */
+  #placeUnderOpener(tab, group) {
+    const openerTab = tab.openerTab;
+    if (!openerTab || openerTab.closing || openerTab.group !== group) {
+      return;
+    }
+    const previous =
+      window.gZenTabLineage.newestChild(
+        openerTab,
+        sibling => sibling !== tab && sibling.group === group
+      ) ?? openerTab;
+    gBrowser.moveTabAfter(tab, previous);
   }
 
   async on_TabUngrouped(event) {
